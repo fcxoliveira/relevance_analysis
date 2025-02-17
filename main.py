@@ -11,7 +11,7 @@ nltk.download('omw-1.4')
 nltk.download('wordnet')
 nltk.download('punkt_tab')
 
-RELEVANCE_THRESHOLD = 0.3
+RELEVANCE_THRESHOLD = 0.5
 
 PATH = 'analysis'
 
@@ -51,16 +51,34 @@ def get_relevant_words(text, model_name, relevance_threshold=0.2):
     query_embeddings = model.encode(text, convert_to_tensor=True)
     corpus_embeddings = model.encode(og_words, convert_to_tensor=True)
     
-    hits = util.semantic_search(query_embeddings, corpus_embeddings)[0]
+    hits = util.cos_sim(query_embeddings, corpus_embeddings)[0]
     
+    print(og_words)
+    
+    print(hits)
+    
+    relevant_words = get_analyse_by_cos(query_embeddings, corpus_embeddings, og_words, relevance_threshold)
+
+    return relevant_words
+
+def get_analyse_by_semantic(query_embeddings, corpus_embeddings, og_words, relevance_threshold=0.2):
+    hits = util.semantic_search(query_embeddings, corpus_embeddings)[0]
     relevant_words = [og_words[hit['corpus_id']] for hit in hits if hit['score'] > relevance_threshold]
 
+    return relevant_words
+
+def get_analyse_by_cos(query_embeddings, corpus_embeddings, og_words, relevance_threshold=0.2):
+    relevant_words = []
+    hits = util.cos_sim(query_embeddings, corpus_embeddings)[0]
+    for i in range(len(og_words)-1):
+        if float(hits[i]) > relevance_threshold:
+            relevant_words.append(og_words[i])
     return relevant_words
 
 if os.path.isdir(PATH) == False:
     mkdir(PATH)
 
-file = open("{}/relevance_analysis_{}.txt".format(PATH, RELEVANCE_THRESHOLD), "w", encoding='utf-8') 
+file = open("{}/relevance_analysis_cosseno_{}.txt".format(PATH, RELEVANCE_THRESHOLD), "w", encoding='utf-8') 
 
 for model in models:
     file.write("### Tests with model '{}'".format(model))
